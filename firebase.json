@@ -1,0 +1,8 @@
+{
+  "firestore": {
+    "databaseId": "remixed-firestore-database-id",
+    "rules": "firestore.rules",
+    "edition": "ENTERPRISE",
+    "dataAccessMode": "FIRESTORE_NATIVE"
+  }
+}
