@@ -16,7 +16,7 @@ import {
   getDocs,
   deleteField
 } from 'firebase/firestore';
-import { auth, db, signIn, logOut } from './firebase';
+import { auth, db, logOut, signIn } from './firebase';
 import { Recipe, Household, Category } from './types';
 import { 
   extractRecipeFromUrl,
@@ -524,7 +524,7 @@ export const App: FC = () => {
             <h1 className="text-5xl font-bold text-stone-900 tracking-tight">Heirloom</h1>
             <p className="text-stone-500 text-lg">Your digital kitchen for family traditions.</p>
           </div>
-          <Button variant="default" className="w-full h-auto py-4 text-lg">
+          <Button variant="default" onClick={signIn} className="w-full h-auto py-4 text-lg">
             Sign in with Google
           </Button>
         </motion.div>
