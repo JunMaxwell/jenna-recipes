@@ -1,6 +1,7 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type } from '@google/genai';
 
-const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY || '' });
+const getAi = () =>
+  new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY || '' });
 
 export interface ExtractedRecipe {
   title: string;
@@ -16,21 +17,28 @@ const recipeSchema = {
     title: { type: Type.STRING },
     ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
     instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
-    category: { type: Type.STRING, description: "One of: Breakfast, Lunch, Dinner, Dessert, Snack, Drink, Other" },
-    estimatedTime: { type: Type.NUMBER, description: "The estimated total time to make this recipe in minutes" }
+    category: {
+      type: Type.STRING,
+      description: 'One of: Breakfast, Lunch, Dinner, Dessert, Snack, Drink, Other',
+    },
+    estimatedTime: {
+      type: Type.NUMBER,
+      description: 'The estimated total time to make this recipe in minutes',
+    },
   },
-  required: ["title", "ingredients", "instructions", "category"]
+  required: ['title', 'ingredients', 'instructions', 'category'],
 };
 
 export async function extractRecipeFromUrl(url: string): Promise<ExtractedRecipe> {
   try {
     if (!url.startsWith('http')) {
-      throw new Error("Please enter a valid URL starting with http:// or https://");
+      throw new Error('Please enter a valid URL starting with http:// or https://');
     }
 
     const contents = [
       { text: `I need you to extract a recipe from this specific URL: ${url}` },
-      { text: `Please use your tools to access the content of the page at ${url}.
+      {
+        text: `Please use your tools to access the content of the page at ${url}.
       CRITICAL INSTRUCTION: Many recipe pages are very long and filled with ads or life stories. To find the actual recipe, you MUST search the page content for the exact words "ingredients", "directions", or "instructions". The recipe will be located near these keywords.
       
       Extract the following information in JSON format:
@@ -40,46 +48,61 @@ export async function extractRecipeFromUrl(url: string): Promise<ExtractedRecipe
       - category: One of [Breakfast, Lunch, Dinner, Dessert, Snack, Drink, Other]
       - estimatedTime: The estimated total time to make this recipe in minutes (number)
       
-      Focus only on the recipe itself. Ignore the blog post text, ads, and comments.` }
+      Focus only on the recipe itself. Ignore the blog post text, ads, and comments.`,
+      },
     ];
 
     const response = await getAi().models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: 'gemini-3-flash-preview',
       contents,
       config: {
         tools: [{ urlContext: {} }, { googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: recipeSchema
-      }
+        responseMimeType: 'application/json',
+        responseSchema: recipeSchema,
+      },
     });
 
     const text = response.text;
-    if (!text || text.trim() === "{}" || text.trim() === "[]") {
-      throw new Error("The AI couldn't find a recipe at that URL. The website might be blocking access or the layout might be too complex.");
+    if (!text || text.trim() === '{}' || text.trim() === '[]') {
+      throw new Error(
+        "The AI couldn't find a recipe at that URL. The website might be blocking access or the layout might be too complex.",
+      );
     }
 
     const jsonStr = text.replace(/```json\n?|\n?```/g, '').trim();
     let parsed: Partial<ExtractedRecipe>;
     try {
       parsed = JSON.parse(jsonStr) as Partial<ExtractedRecipe>;
-    } catch (e) {
-      console.error("JSON Parse Error:", text);
-      throw new Error("The AI returned data in an unexpected format. Please try again.");
+    } catch (error) {
+      console.error('JSON Parse Error:', text);
+      throw new Error('The AI returned data in an unexpected format. Please try again.', {
+        cause: error,
+      });
     }
-    
+
     if (!parsed.title || !parsed.ingredients || parsed.ingredients.length === 0) {
-      throw new Error("The AI found the page but couldn't identify a complete recipe. You might need to add this one manually.");
+      throw new Error(
+        "The AI found the page but couldn't identify a complete recipe. You might need to add this one manually.",
+      );
     }
-    
+
     return parsed as ExtractedRecipe;
   } catch (error) {
-    console.error("Error in extractRecipeFromUrl:", error);
+    console.error('Error in extractRecipeFromUrl:', error);
     if (error instanceof Error) {
-      if (error.message.includes("URL") || error.message.includes("AI") || error.message.includes("format") || error.message.includes("recipe")) {
+      if (
+        error.message.includes('URL') ||
+        error.message.includes('AI') ||
+        error.message.includes('format') ||
+        error.message.includes('recipe')
+      ) {
         throw error;
       }
     }
-    throw new Error("We had trouble reaching that website. Please try another URL or add the recipe manually.");
+    throw new Error(
+      'We had trouble reaching that website. Please try another URL or add the recipe manually.',
+      { cause: error },
+    );
   }
 }
 
@@ -89,20 +112,20 @@ export async function generateRecipe(category: string, details: string): Promise
   Please provide a creative title, a list of ingredients with measurements, and step-by-step instructions.`;
 
   const response = await getAi().models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: 'gemini-3-flash-preview',
     contents: prompt,
     config: {
-      responseMimeType: "application/json",
-      responseSchema: recipeSchema
-    }
+      responseMimeType: 'application/json',
+      responseSchema: recipeSchema,
+    },
   });
 
   const text = response.text;
-  if (!text) throw new Error("Failed to generate recipe.");
+  if (!text) throw new Error('Failed to generate recipe.');
   return JSON.parse(text) as ExtractedRecipe;
 }
 
-async function compressImage(base64Str: string, maxWidth = 800, quality = 0.7): Promise<string> {
+export async function compressImage(base64Str: string, maxWidth = 800, quality = 0.7): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = base64Str;
@@ -142,8 +165,14 @@ const CURATED_FOOD_IMAGES = [
   { id: 'photo-1555939594-58d7cb561ad1', tags: 'bbq, meat, grill, dinner, skewers' },
   { id: 'photo-1540189549336-e6e99c3679fe', tags: 'salad, healthy, lunch, gourmet, salmon' },
   { id: 'photo-1565958011703-44f9829ba187', tags: 'dessert, cheesecake, sweet, berries, fruit' },
-  { id: 'photo-1484723091739-30a097e8f929', tags: 'toast, breakfast, fruit, healthy, french toast' },
-  { id: 'photo-1476224489421-aba8c155111a', tags: 'dinner, gourmet, plated, professional, seafood' },
+  {
+    id: 'photo-1484723091739-30a097e8f929',
+    tags: 'toast, breakfast, fruit, healthy, french toast',
+  },
+  {
+    id: 'photo-1476224489421-aba8c155111a',
+    tags: 'dinner, gourmet, plated, professional, seafood',
+  },
   { id: 'photo-1517701550927-30cf4ba1dba5', tags: 'coffee, drink, breakfast, cafe, latte' },
   { id: 'photo-1544145945-f904253d0c7b', tags: 'cocktail, drink, bar, party, mojito' },
   { id: 'photo-1551024506-0bccd828d307', tags: 'donuts, dessert, sweet, snack, glazed' },
@@ -230,16 +259,18 @@ const CURATED_FOOD_IMAGES = [
   { id: 'photo-1543353071-873f17a7a088', tags: 'soup, lunch, dinner, warm, bowl' },
   { id: 'photo-1544025162-d76694265947', tags: 'ribs, bbq, meat, dinner, grill' },
   { id: 'photo-1546069901-ba9599a7e63c', tags: 'bowl, healthy, lunch, quinoa, buddha bowl' },
-  { id: 'photo-1546793665-c74683c3f43d', tags: 'sandwich, lunch, healthy, bread, snack' }
+  { id: 'photo-1546793665-c74683c3f43d', tags: 'sandwich, lunch, healthy, bread, snack' },
 ];
 
-
-export async function generateRecipeImage(title: string, category?: string): Promise<string | null> {
+export async function generateRecipeImage(
+  title: string,
+  category?: string,
+): Promise<string | null> {
   try {
     const imageList = CURATED_FOOD_IMAGES.map((img, index) => `${index}: ${img.tags}`).join('\n');
-    
+
     const response = await getAi().models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: 'gemini-3-flash-preview',
       contents: `I have a recipe titled "${title}" in the category "${category || 'Other'}". 
       Below is a list of high-quality food images with their tags. 
       Pick the index of the image that best matches this recipe.
@@ -249,19 +280,21 @@ export async function generateRecipeImage(title: string, category?: string): Pro
       
       Output ONLY the index number, nothing else.`,
     });
-    
+
     const indexStr = response.text.trim();
     const index = parseInt(indexStr);
-    
+
     if (!isNaN(index) && index >= 0 && index < CURATED_FOOD_IMAGES.length) {
       return `https://images.unsplash.com/${CURATED_FOOD_IMAGES[index].id}?auto=format&fit=crop&q=80&w=1000`;
     }
-    
-    throw new Error("Invalid index returned");
+
+    throw new Error('Invalid index returned');
   } catch (error) {
-    console.error("Failed to select curated image:", error);
+    console.error('Failed to select curated image:', error);
     // Fallback to a random image from the category if possible, or just a generic one
-    const categoryMatch = CURATED_FOOD_IMAGES.find(img => img.tags.includes((category || '').toLowerCase()));
+    const categoryMatch = CURATED_FOOD_IMAGES.find((img) =>
+      img.tags.includes((category || '').toLowerCase()),
+    );
     const fallbackId = categoryMatch ? categoryMatch.id : CURATED_FOOD_IMAGES[20].id;
     return `https://images.unsplash.com/${fallbackId}?auto=format&fit=crop&q=80&w=1000`;
   }

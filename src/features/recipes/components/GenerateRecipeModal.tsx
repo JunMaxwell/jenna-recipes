@@ -1,17 +1,39 @@
-import { FC, useEffect } from 'react';
-import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
-import { Category } from '../../../types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { type Resolver, useForm } from 'react-hook-form';
+
+import { FC, useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import {
-  generateRecipeSchema,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+
+import { Category } from '../../../types';
+import {
   type GenerateRecipeInput,
   type GenerateRecipeValues,
+  generateRecipeSchema,
 } from '../schemas/recipe-schema';
 
 export interface GenerateRecipeModalProps {
@@ -49,15 +71,18 @@ export const GenerateRecipeModal: FC<GenerateRecipeModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-850 p-6 flex flex-col gap-4 rounded-3xl">
         <DialogHeader className="border-b border-stone-200 dark:border-stone-800 pb-3 pr-8">
           <DialogTitle className="text-2xl font-serif font-semibold text-stone-800 dark:text-stone-150">
             Generate AI Recipe
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            Generate AI Recipe
-          </DialogDescription>
+          <DialogDescription className="sr-only">Generate AI Recipe</DialogDescription>
         </DialogHeader>
         <div className="flex-1 text-stone-600 dark:text-stone-300">
           <Form {...form}>
@@ -68,7 +93,11 @@ export const GenerateRecipeModal: FC<GenerateRecipeModalProps> = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className={LABEL_CLASS}>Meal Type</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={isProcessing}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isProcessing}
+                    >
                       <FormControl>
                         <SelectTrigger className="w-full h-11 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100">
                           <SelectValue placeholder="Select a meal type" />
@@ -76,7 +105,9 @@ export const GenerateRecipeModal: FC<GenerateRecipeModalProps> = ({
                       </FormControl>
                       <SelectContent>
                         {CATEGORIES.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

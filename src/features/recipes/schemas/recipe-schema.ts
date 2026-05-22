@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import type { Category } from '../../../types';
 
 const CATEGORIES = ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Drink', 'Other'] as const;
@@ -13,15 +14,16 @@ const optionalUrl = z
   .string()
   .trim()
   .optional()
-  .refine(
-    (val) => !val || /^https?:\/\/.+/i.test(val),
-    { message: 'Must be a valid URL' }
-  );
+  .refine((val) => !val || /^https?:\/\/.+/i.test(val), { message: 'Must be a valid URL' });
 
 export const recipeFormSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
   category: z.enum(CATEGORIES satisfies readonly Category[]),
-  rating: z.coerce.number().int().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
+  rating: z.coerce
+    .number()
+    .int()
+    .min(1, 'Rating must be at least 1')
+    .max(5, 'Rating must be at most 5'),
   estimatedTime: z
     .union([z.literal(''), z.coerce.number().int().min(1, 'Time must be at least 1 minute')])
     .optional()

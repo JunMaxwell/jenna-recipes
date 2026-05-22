@@ -1,18 +1,40 @@
-import { FC, useEffect } from 'react';
-import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle } from 'lucide-react';
-import { Recipe } from '../../../types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { type Resolver, useForm } from 'react-hook-form';
+
+import { FC, useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import {
-  recipeFormSchema,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+
+import { Recipe } from '../../../types';
+import {
   type RecipeFormInput,
   type RecipeFormValues,
+  recipeFormSchema,
 } from '../schemas/recipe-schema';
 
 export interface RecipeFormModalProps {
@@ -26,8 +48,10 @@ export interface RecipeFormModalProps {
 const CATEGORIES = ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Drink', 'Other'] as const;
 
 const LABEL_CLASS = 'text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider';
-const FIELD_CLASS = 'w-full h-11 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100';
-const TEXTAREA_CLASS = 'w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100';
+const FIELD_CLASS =
+  'w-full h-11 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100';
+const TEXTAREA_CLASS =
+  'w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100';
 
 const buildDefaults = (recipe: Recipe | null): RecipeFormInput => ({
   title: recipe?.title ?? '',
@@ -74,7 +98,12 @@ export const RecipeFormModal: FC<RecipeFormModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-850 p-6 flex flex-col gap-4 rounded-3xl">
         <DialogHeader className="border-b border-stone-200 dark:border-stone-800 pb-3 pr-8">
           <DialogTitle className="text-2xl font-serif font-semibold text-stone-800 dark:text-stone-150">
@@ -122,7 +151,9 @@ export const RecipeFormModal: FC<RecipeFormModalProps> = ({
                         </FormControl>
                         <SelectContent>
                           {CATEGORIES.map((c) => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -232,7 +263,9 @@ export const RecipeFormModal: FC<RecipeFormModalProps> = ({
                 />
               </div>
 
-              <Button type="submit" size="lg" className="w-full h-auto py-4 text-lg">Save Recipe</Button>
+              <Button type="submit" size="lg" className="w-full h-auto py-4 text-lg">
+                Save Recipe
+              </Button>
             </form>
           </Form>
         </div>

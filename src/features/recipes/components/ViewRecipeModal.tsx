@@ -1,8 +1,17 @@
+import { Edit2, Link as LinkIcon, Star, Trash2 } from 'lucide-react';
+
 import { FC } from 'react';
-import { Star, Link as LinkIcon, Trash2, Edit2 } from 'lucide-react';
-import { Recipe } from '../../../types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+import { Recipe } from '../../../types';
 
 export interface ViewRecipeModalProps {
   recipe: Recipe | null;
@@ -24,15 +33,18 @@ export const ViewRecipeModal: FC<ViewRecipeModalProps> = ({
   if (!recipe) return null;
 
   return (
-    <Dialog open={!!recipe} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={!!recipe}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-850 p-6 flex flex-col gap-4 rounded-3xl">
         <DialogHeader className="border-b border-stone-200 dark:border-stone-800 pb-3 pr-8">
           <DialogTitle className="text-2xl font-serif font-semibold text-stone-800 dark:text-stone-150">
             {recipe.title}
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            {recipe.title}
-          </DialogDescription>
+          <DialogDescription className="sr-only">{recipe.title}</DialogDescription>
         </DialogHeader>
         <div className="flex-1 text-stone-600 dark:text-stone-300 space-y-8">
           <div className="flex items-center gap-4 text-stone-500 dark:text-stone-400">
@@ -44,9 +56,9 @@ export const ViewRecipeModal: FC<ViewRecipeModalProps> = ({
               <span className="font-bold">{recipe.rating || 0}</span>
             </div>
             {recipe.sourceUrl && (
-              <a 
-                href={recipe.sourceUrl} 
-                target="_blank" 
+              <a
+                href={recipe.sourceUrl}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-stone-400 hover:text-stone-800 dark:hover:text-stone-100"
               >
@@ -57,11 +69,11 @@ export const ViewRecipeModal: FC<ViewRecipeModalProps> = ({
 
           {recipe.imageUrl && (
             <div className="aspect-video w-full overflow-hidden rounded-2xl bg-stone-100 dark:bg-stone-800">
-              <img 
-                src={recipe.imageUrl} 
+              <img
+                src={recipe.imageUrl}
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover" 
-                alt={recipe.title} 
+                className="w-full h-full object-cover"
+                alt={recipe.title}
               />
             </div>
           )}

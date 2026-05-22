@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 
-export type Category = "Breakfast" | "Lunch" | "Dinner" | "Dessert" | "Snack" | "Drink" | "Other";
+export type Category = 'Breakfast' | 'Lunch' | 'Dinner' | 'Dessert' | 'Snack' | 'Drink' | 'Other';
 
 export interface Recipe {
   id?: string;

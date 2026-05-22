@@ -1,66 +1,65 @@
-import { useState, useEffect, FC } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp, 
+import { User, onAuthStateChanged } from 'firebase/auth';
+import {
   Timestamp,
-  setDoc,
+  addDoc,
+  collection,
+  deleteDoc,
+  deleteField,
+  doc,
   getDoc,
   getDocs,
-  deleteField
+  onSnapshot,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
-import { auth, db, logOut, signIn } from './firebase';
-import { Recipe, Household, Category } from './types';
-import { 
-  extractRecipeFromUrl,
-  generateRecipe,
-  generateRecipeImage
-} from './services/geminiService';
-import { 
-  Plus, 
-  Search, 
-  Link as LinkIcon, 
-  LogOut, 
-  Users, 
-  ChefHat, 
+import {
+  ChefHat,
+  Link as LinkIcon,
   Loader2,
+  LogOut,
+  Moon,
+  Plus,
+  Search,
   Sparkles,
   Sun,
-  Moon
+  Users,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
+
+import { FC, useEffect, useState } from 'react';
 
 // Shared Components
 import { Button } from '@/components/ui/button';
-import { ErrorBoundary } from './ErrorBoundary';
-
-// Household Feature Components
-import { 
-  CreateHouseholdForm, 
-  HouseholdModal, 
-  FirstFamilyModal, 
-  DemoDisabledModal, 
-  DataDeletedModal 
-} from './features/households';
-
-// Recipe Feature Components
-import { 
-  STOCK_RECIPES, 
-  RecipeGrid, 
-  ViewRecipeModal, 
-  RecipeFormModal, 
-  ImportRecipeModal, 
-  GenerateRecipeModal 
-} from './features/recipes';
 import { Input } from '@/components/ui/input';
+
+import { ErrorBoundary } from './ErrorBoundary';
+// Household Feature Components
+import {
+  CreateHouseholdForm,
+  DataDeletedModal,
+  DemoDisabledModal,
+  FirstFamilyModal,
+  HouseholdModal,
+} from './features/households';
+// Recipe Feature Components
+import {
+  GenerateRecipeModal,
+  ImportRecipeModal,
+  RecipeFormModal,
+  RecipeGrid,
+  STOCK_RECIPES,
+  ViewRecipeModal,
+} from './features/recipes';
+import { auth, db, logOut, signIn } from './firebase';
+import {
+  extractRecipeFromUrl,
+  generateRecipe,
+  generateRecipeImage,
+} from './services/geminiService';
+import { Category, Household, Recipe } from './types';
 
 // --- Error Handling ---
 
@@ -101,15 +100,16 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
+      providerInfo:
+        auth.currentUser?.providerData.map((provider) => ({
+          providerId: provider.providerId,
+          displayName: provider.displayName,
+          email: provider.email,
+          photoUrl: provider.photoURL,
+        })) || [],
     },
     operationType,
-    path
+    path,
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
 }
@@ -123,8 +123,11 @@ export const App: FC = () => {
   const [households, setHouseholds] = useState<Household[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' || 
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      return (
+        localStorage.getItem('theme') === 'dark' ||
+        (!localStorage.getItem('theme') &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches)
+      );
     }
     return false;
   });
@@ -143,7 +146,7 @@ export const App: FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
-  
+
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -173,7 +176,7 @@ export const App: FC = () => {
         if (!userDoc.exists()) {
           await setDoc(doc(db, 'users', u.uid), {
             displayName: u.displayName || 'Anonymous Chef',
-            photoURL: u.photoURL || ''
+            photoURL: u.photoURL || '',
           });
         }
 
@@ -182,29 +185,40 @@ export const App: FC = () => {
           const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
           let dataDeleted = false;
 
-          const hQuery = query(collection(db, 'households'), where(`members.${u.uid}`, 'in', ['admin', 'member', 'viewer']));
+          const hQuery = query(
+            collection(db, 'households'),
+            where(`members.${u.uid}`, 'in', ['admin', 'member', 'viewer']),
+          );
           const hSnapshot = await getDocs(hQuery);
-          
+
           for (const hDoc of hSnapshot.docs) {
             const hData = hDoc.data();
             const createdAt = hData.createdAt?.toMillis?.() || 0;
-            
-            if (createdAt > 0 && createdAt < twentyFourHoursAgo && hData.ownerId === u.uid && !hData.isStock) {
+
+            if (
+              createdAt > 0 &&
+              createdAt < twentyFourHoursAgo &&
+              hData.ownerId === u.uid &&
+              !hData.isStock
+            ) {
               try {
-                const rQuery = query(collection(db, 'recipes'), where('householdId', '==', hDoc.id));
+                const rQuery = query(
+                  collection(db, 'recipes'),
+                  where('householdId', '==', hDoc.id),
+                );
                 const rSnapshot = await getDocs(rQuery);
                 for (const rDoc of rSnapshot.docs) {
                   try {
                     await deleteDoc(doc(db, 'recipes', rDoc.id));
                   } catch (e) {
-                    console.error("Failed to delete recipe", e);
+                    console.error('Failed to delete recipe', e);
                   }
                 }
-                
+
                 await deleteDoc(doc(db, 'households', hDoc.id));
                 dataDeleted = true;
               } catch (e) {
-                console.error("Failed to delete household", e);
+                console.error('Failed to delete household', e);
               }
             } else {
               const rQuery = query(collection(db, 'recipes'), where('householdId', '==', hDoc.id));
@@ -212,12 +226,17 @@ export const App: FC = () => {
               for (const rDoc of rSnapshot.docs) {
                 const rData = rDoc.data();
                 const rCreatedAt = rData.createdAt?.toMillis?.() || 0;
-                if (rCreatedAt > 0 && rCreatedAt < twentyFourHoursAgo && !rData.isStock && (rData.authorId === u.uid || hData.ownerId === u.uid)) {
+                if (
+                  rCreatedAt > 0 &&
+                  rCreatedAt < twentyFourHoursAgo &&
+                  !rData.isStock &&
+                  (rData.authorId === u.uid || hData.ownerId === u.uid)
+                ) {
                   try {
                     await deleteDoc(doc(db, 'recipes', rDoc.id));
                     dataDeleted = true;
                   } catch (e) {
-                    console.error("Failed to delete recipe", e);
+                    console.error('Failed to delete recipe', e);
                   }
                 }
               }
@@ -228,7 +247,7 @@ export const App: FC = () => {
             setIsDataDeletedModalOpen(true);
           }
         } catch (error) {
-          console.error("Error cleaning up old data:", error);
+          console.error('Error cleaning up old data:', error);
         }
       }
       setLoading(false);
@@ -243,23 +262,30 @@ export const App: FC = () => {
       return;
     }
     setHouseholdsLoading(true);
-    const q = query(collection(db, 'households'), where(`members.${user.uid}`, 'in', ['admin', 'member', 'viewer']));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const h = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Household));
-      setHouseholds(h);
-      setHouseholdsLoading(false);
-      if (h.length > 0) {
-        setSelectedHousehold(prev => {
-          if (!prev) return h[0];
-          const updated = h.find(hh => hh.id === prev.id);
-          return updated || h[0];
-        });
-      } else {
-        setSelectedHousehold(null);
-      }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'households');
-    });
+    const q = query(
+      collection(db, 'households'),
+      where(`members.${user.uid}`, 'in', ['admin', 'member', 'viewer']),
+    );
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const h = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Household);
+        setHouseholds(h);
+        setHouseholdsLoading(false);
+        if (h.length > 0) {
+          setSelectedHousehold((prev) => {
+            if (!prev) return h[0];
+            const updated = h.find((hh) => hh.id === prev.id);
+            return updated || h[0];
+          });
+        } else {
+          setSelectedHousehold(null);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'households');
+      },
+    );
     return () => unsubscribe();
   }, [user]);
 
@@ -270,17 +296,21 @@ export const App: FC = () => {
       return;
     }
     const q = query(collection(db, 'recipes'), where('householdId', '==', selectedHousehold.id));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedRecipes = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Recipe));
-      fetchedRecipes.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis?.() || Date.now();
-        const timeB = b.createdAt?.toMillis?.() || Date.now();
-        return timeB - timeA;
-      });
-      setRecipes(fetchedRecipes);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'recipes');
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetchedRecipes = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Recipe);
+        fetchedRecipes.sort((a, b) => {
+          const timeA = a.createdAt?.toMillis?.() || Date.now();
+          const timeB = b.createdAt?.toMillis?.() || Date.now();
+          return timeB - timeA;
+        });
+        setRecipes(fetchedRecipes);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'recipes');
+      },
+    );
     return () => unsubscribe();
   }, [user, selectedHousehold]);
 
@@ -292,17 +322,17 @@ export const App: FC = () => {
         name,
         ownerId: user.uid,
         members: { [user.uid]: 'admin' },
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       };
       const docRef = await addDoc(collection(db, 'households'), newH);
-      
+
       // Add stock recipes to the new household
       for (const recipe of STOCK_RECIPES) {
         await addDoc(collection(db, 'recipes'), {
           ...recipe,
           authorId: user.uid,
           householdId: docRef.id,
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
         });
       }
 
@@ -310,8 +340,8 @@ export const App: FC = () => {
       setIsHouseholdModalOpen(false);
       setIsFirstFamilyModalOpen(true);
     } catch (error) {
-      console.error("Error creating household:", error);
-      alert("Failed to create household.");
+      console.error('Error creating household:', error);
+      alert('Failed to create household.');
     } finally {
       setIsProcessing(false);
     }
@@ -328,29 +358,29 @@ export const App: FC = () => {
       }
       // 2. Delete the household
       await deleteDoc(doc(db, 'households', householdId));
-      
+
       setIsDeleteHouseholdConfirmOpen(false);
       setIsHouseholdModalOpen(false);
     } catch (error) {
-      console.error("Failed to delete household:", error);
-      alert("Failed to delete household. Please try again.");
+      console.error('Failed to delete household:', error);
+      alert('Failed to delete household. Please try again.');
     }
   };
 
   const handleSaveRecipe = async (recipeData: Partial<Recipe>) => {
     if (!user || !selectedHousehold) return;
-    
+
     // Validation
     if (!recipeData.title?.trim()) {
-      setRecipeFormError("Please enter a recipe title.");
+      setRecipeFormError('Please enter a recipe title.');
       return;
     }
     if (!recipeData.ingredients || recipeData.ingredients.length === 0) {
-      setRecipeFormError("Please add at least one ingredient.");
+      setRecipeFormError('Please add at least one ingredient.');
       return;
     }
     if (!recipeData.instructions || recipeData.instructions.length === 0) {
-      setRecipeFormError("Please add at least one instruction step.");
+      setRecipeFormError('Please add at least one instruction step.');
       return;
     }
 
@@ -358,14 +388,14 @@ export const App: FC = () => {
 
     // Remove undefined fields to prevent Firestore errors
     const cleanedData = Object.fromEntries(
-      Object.entries(recipeData).filter(([_, v]) => v !== undefined)
+      Object.entries(recipeData).filter(([_, v]) => v !== undefined),
     );
 
     try {
       if (editingRecipe?.id) {
         await updateDoc(doc(db, 'recipes', editingRecipe.id), {
           ...cleanedData,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
       } else {
         await addDoc(collection(db, 'recipes'), {
@@ -373,13 +403,13 @@ export const App: FC = () => {
           authorId: user.uid,
           householdId: selectedHousehold.id,
           createdAt: serverTimestamp(),
-          rating: cleanedData.rating || 0
+          rating: cleanedData.rating || 0,
         });
       }
       setIsAddModalOpen(false);
       setEditingRecipe(null);
     } catch (error) {
-      console.error("Error saving recipe:", error);
+      console.error('Error saving recipe:', error);
     }
   };
 
@@ -397,10 +427,10 @@ export const App: FC = () => {
     if (!importUrl) return;
     setIsProcessing(true);
     setImportError(null);
-    console.log("Starting import for URL:", importUrl);
+    console.log('Starting import for URL:', importUrl);
     try {
       const extracted = await extractRecipeFromUrl(importUrl);
-      console.log("Extracted recipe:", extracted);
+      console.log('Extracted recipe:', extracted);
 
       const imageUrl = await generateRecipeImage(extracted.title, extracted.category);
 
@@ -413,23 +443,33 @@ export const App: FC = () => {
         id: '', // Temporary ID to indicate it's new but has data
         sourceUrl: importUrl,
         imageUrl: imageUrl || '',
-        category: extracted.category as Category || 'Other',
+        category: (extracted.category as Category) || 'Other',
         authorId: user?.uid || '',
         householdId: selectedHousehold?.id || '',
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
       } as Recipe);
 
       // Open the add modal
       setIsAddModalOpen(true);
     } catch (error) {
-      console.error("Import failed:", error);
-      setImportError(error instanceof Error ? error.message : "Failed to import recipe. Please check the URL and try again.");
+      console.error('Import failed:', error);
+      setImportError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to import recipe. Please check the URL and try again.',
+      );
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleGenerateRecipe = async ({ category, details }: { category: Category; details: string }) => {
+  const handleGenerateRecipe = async ({
+    category,
+    details,
+  }: {
+    category: Category;
+    details: string;
+  }) => {
     setIsProcessing(true);
     try {
       const recipe = await generateRecipe(category, details);
@@ -444,13 +484,13 @@ export const App: FC = () => {
         id: '',
         authorId: user?.uid || '',
         householdId: selectedHousehold?.id || '',
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
       } as Recipe);
 
       setIsAddModalOpen(true);
     } catch (error) {
-      console.error("Generate failed:", error);
-      alert("Failed to generate recipe. Please try again.");
+      console.error('Generate failed:', error);
+      alert('Failed to generate recipe. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -461,28 +501,28 @@ export const App: FC = () => {
     try {
       const hRef = doc(db, 'households', selectedHousehold.id);
       await updateDoc(hRef, {
-        [`members.${userId}`]: 'member'
+        [`members.${userId}`]: 'member',
       });
     } catch (error) {
-      console.error("Failed to add member:", error);
-      alert("Failed to add member. Please check the User ID and try again.");
+      console.error('Failed to add member:', error);
+      alert('Failed to add member. Please check the User ID and try again.');
     }
   };
 
   const handleRemoveMember = async (userId: string) => {
     if (!selectedHousehold || !user || selectedHousehold.ownerId !== user.uid) return;
     if (userId === user.uid) {
-      alert("You cannot remove yourself from your own household.");
+      alert('You cannot remove yourself from your own household.');
       return;
     }
     try {
       const hRef = doc(db, 'households', selectedHousehold.id);
       await updateDoc(hRef, {
-        [`members.${userId}`]: deleteField()
+        [`members.${userId}`]: deleteField(),
       });
     } catch (error) {
-      console.error("Failed to remove member:", error);
-      alert("Failed to remove member. Please try again.");
+      console.error('Failed to remove member:', error);
+      alert('Failed to remove member. Please try again.');
     }
   };
 
@@ -494,9 +534,10 @@ export const App: FC = () => {
     }
   };
 
-  const filteredRecipes = recipes.filter(r => {
-    const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         r.ingredients.some(i => i.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredRecipes = recipes.filter((r) => {
+    const matchesSearch =
+      r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.ingredients.some((i) => i.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = selectedCategory === 'All' || r.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -512,7 +553,7 @@ export const App: FC = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-6 font-serif">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full text-center space-y-8"
@@ -534,7 +575,7 @@ export const App: FC = () => {
 
   if (households.length === 0) {
     return (
-      <CreateHouseholdForm 
+      <CreateHouseholdForm
         isProcessing={isProcessing}
         onCreateHousehold={handleCreateHousehold}
         onSignOut={logOut}
@@ -552,13 +593,15 @@ export const App: FC = () => {
               <div className="w-10 h-10 bg-stone-800 dark:bg-stone-100 rounded-xl flex items-center justify-center shadow-lg -rotate-6">
                 <ChefHat className="w-6 h-6 text-stone-50 dark:text-stone-900" />
               </div>
-              <h1 className="text-2xl font-serif font-bold tracking-tight hidden sm:block">Heirloom</h1>
+              <h1 className="text-2xl font-serif font-bold tracking-tight hidden sm:block">
+                Heirloom
+              </h1>
             </div>
 
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 type="button"
-                onClick={() => setIsDarkMode(prev => !prev)}
+                onClick={() => setIsDarkMode((prev) => !prev)}
                 className="p-2 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-full transition-colors text-stone-500 dark:text-stone-400 flex items-center justify-center"
                 aria-label="Toggle dark mode"
               >
@@ -566,7 +609,7 @@ export const App: FC = () => {
               </button>
 
               <div className="relative group">
-                <button 
+                <button
                   onClick={() => setIsHouseholdModalOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-400 dark:hover:border-stone-600 transition-all shadow-sm"
                 >
@@ -576,15 +619,18 @@ export const App: FC = () => {
                   </span>
                 </button>
               </div>
-              
+
               <div className="flex items-center gap-3 pl-4 border-l border-stone-200 dark:border-stone-800">
-                <img 
-                  src={user.photoURL || ''} 
-                  referrerPolicy="no-referrer" 
-                  className="w-8 h-8 rounded-full border border-stone-200 dark:border-stone-800" 
-                  alt="Profile" 
+                <img
+                  src={user.photoURL || ''}
+                  referrerPolicy="no-referrer"
+                  className="w-8 h-8 rounded-full border border-stone-200 dark:border-stone-800"
+                  alt="Profile"
                 />
-                <button onClick={logOut} className="p-2 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-full transition-colors">
+                <button
+                  onClick={logOut}
+                  className="p-2 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-full transition-colors"
+                >
                   <LogOut className="w-5 h-5 text-stone-400" />
                 </button>
               </div>
@@ -601,22 +647,25 @@ export const App: FC = () => {
                 <p className="text-stone-500 dark:text-stone-400 italic">What's cooking today?</p>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  variant="secondary" 
-                  onClick={() => setIsGenerateModalOpen(true)} 
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsGenerateModalOpen(true)}
                   className="shadow-sm"
                 >
                   <Sparkles className="w-4 h-4" /> AI Recipe
                 </Button>
-                <Button 
-                  variant="secondary" 
-                  onClick={() => setIsImportModalOpen(true)} 
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsImportModalOpen(true)}
                   className="shadow-sm"
                 >
                   <LinkIcon className="w-4 h-4" /> Import URL
                 </Button>
-                <Button 
-                  onClick={() => { setEditingRecipe(null); setIsAddModalOpen(true); }} 
+                <Button
+                  onClick={() => {
+                    setEditingRecipe(null);
+                    setIsAddModalOpen(true);
+                  }}
                   className="shadow-sm"
                 >
                   <Plus className="w-4 h-4" /> Add Recipe
@@ -628,9 +677,9 @@ export const App: FC = () => {
             <section className="flex flex-col lg:flex-row gap-4">
               <div className="relative flex-1 lg:min-w-[400px]">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                <Input 
-                  type="text" 
-                  placeholder="Search recipes or ingredients..." 
+                <Input
+                  type="text"
+                  placeholder="Search recipes or ingredients..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-12 pr-4 h-12 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-800/10 dark:focus:ring-stone-100/10 transition-all text-base"
@@ -640,7 +689,7 @@ export const App: FC = () => {
                 {['All', 'Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Drink'].map((cat) => (
                   <Button
                     key={cat}
-                    variant={selectedCategory === cat ? "default" : "outline"}
+                    variant={selectedCategory === cat ? 'default' : 'outline'}
                     onClick={() => setSelectedCategory(cat as Category | 'All')}
                     className="whitespace-nowrap shadow-sm"
                     size="lg"
@@ -652,15 +701,12 @@ export const App: FC = () => {
             </section>
 
             {/* Recipe Grid */}
-            <RecipeGrid 
-              recipes={filteredRecipes} 
-              onSelectRecipe={setViewingRecipe} 
-            />
+            <RecipeGrid recipes={filteredRecipes} onSelectRecipe={setViewingRecipe} />
           </main>
         </div>
 
         {/* Households Modals */}
-        <HouseholdModal 
+        <HouseholdModal
           isOpen={isHouseholdModalOpen}
           onClose={() => setIsHouseholdModalOpen(false)}
           households={households}
@@ -678,34 +724,45 @@ export const App: FC = () => {
           setIsDeleteHouseholdConfirmOpen={setIsDeleteHouseholdConfirmOpen}
         />
 
-        <FirstFamilyModal 
+        <FirstFamilyModal
           isOpen={isFirstFamilyModalOpen}
           onClose={() => setIsFirstFamilyModalOpen(false)}
         />
 
-        <DemoDisabledModal 
+        <DemoDisabledModal
           isOpen={isDemoDisabledModalOpen}
           onClose={() => setIsDemoDisabledModalOpen(false)}
         />
 
-        <DataDeletedModal 
+        <DataDeletedModal
           isOpen={isDataDeletedModalOpen}
           onClose={() => setIsDataDeletedModalOpen(false)}
         />
 
         {/* Recipes Modals */}
-        <ViewRecipeModal 
+        <ViewRecipeModal
           recipe={viewingRecipe}
-          onClose={() => { setViewingRecipe(null); setIsDeleteConfirmOpen(false); }}
+          onClose={() => {
+            setViewingRecipe(null);
+            setIsDeleteConfirmOpen(false);
+          }}
           onDelete={handleDeleteRecipe}
-          onEdit={(recipe) => { setEditingRecipe(recipe); setViewingRecipe(null); setIsAddModalOpen(true); }}
+          onEdit={(recipe) => {
+            setEditingRecipe(recipe);
+            setViewingRecipe(null);
+            setIsAddModalOpen(true);
+          }}
           isDeleteConfirmOpen={isDeleteConfirmOpen}
           setIsDeleteConfirmOpen={setIsDeleteConfirmOpen}
         />
 
-        <RecipeFormModal 
+        <RecipeFormModal
           isOpen={isAddModalOpen}
-          onClose={() => { setIsAddModalOpen(false); setEditingRecipe(null); setRecipeFormError(null); }}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEditingRecipe(null);
+            setRecipeFormError(null);
+          }}
           editingRecipe={editingRecipe}
           recipeFormError={recipeFormError}
           onSaveRecipe={handleSaveRecipe}
@@ -713,7 +770,10 @@ export const App: FC = () => {
 
         <ImportRecipeModal
           isOpen={isImportModalOpen}
-          onClose={() => { setIsImportModalOpen(false); setImportError(null); }}
+          onClose={() => {
+            setIsImportModalOpen(false);
+            setImportError(null);
+          }}
           importError={importError}
           setImportError={setImportError}
           isProcessing={isProcessing}

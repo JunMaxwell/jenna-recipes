@@ -1,12 +1,15 @@
-import { FC } from 'react';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2, Users } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Users, Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+
+import { FC } from 'react';
+
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { createHouseholdSchema, type CreateHouseholdValues } from '../schemas/household-schema';
+import { Input } from '@/components/ui/input';
+
+import { type CreateHouseholdValues, createHouseholdSchema } from '../schemas/household-schema';
 
 export interface CreateHouseholdFormProps {
   isProcessing: boolean;
@@ -40,7 +43,10 @@ export const CreateHouseholdForm: FC<CreateHouseholdFormProps> = ({
         </div>
         <div className="space-y-2">
           <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Create a Household</h1>
-          <p className="text-stone-500 text-lg">You need a household to start saving recipes. A household is where you and your family share traditions.</p>
+          <p className="text-stone-500 text-lg">
+            You need a household to start saving recipes. A household is where you and your family
+            share traditions.
+          </p>
         </div>
 
         <Form {...form}>
@@ -62,7 +68,12 @@ export const CreateHouseholdForm: FC<CreateHouseholdFormProps> = ({
                 </FormItem>
               )}
             />
-            <Button type="submit" size="lg" className="w-full h-auto py-4 text-lg shadow-lg" disabled={isProcessing}>
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full h-auto py-4 text-lg shadow-lg"
+              disabled={isProcessing}
+            >
               {isProcessing ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" /> Creating...

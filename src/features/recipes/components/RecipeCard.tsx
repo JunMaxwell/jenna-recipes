@@ -1,8 +1,11 @@
-import { FC } from 'react';
+import { Clock, Soup, Star, Utensils } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Utensils, Star, Clock, Soup } from 'lucide-react';
-import { Recipe } from '../../../types';
+
+import { FC } from 'react';
+
 import { Card } from '@/components/ui/card';
+
+import { Recipe } from '../../../types';
 
 export interface RecipeCardProps {
   recipe: Recipe;
@@ -10,8 +13,8 @@ export interface RecipeCardProps {
 }
 
 export const RecipeCard: FC<RecipeCardProps> = ({ recipe, onSelect }) => {
-  const estimatedTime = recipe.estimatedTime 
-    ? `${recipe.estimatedTime}m` 
+  const estimatedTime = recipe.estimatedTime
+    ? `${recipe.estimatedTime}m`
     : `${recipe.instructions.length * 5}m`;
 
   return (
@@ -27,11 +30,11 @@ export const RecipeCard: FC<RecipeCardProps> = ({ recipe, onSelect }) => {
       <Card className="h-full flex flex-col gap-4 overflow-hidden p-0 border-stone-200 dark:border-stone-800">
         <div className="aspect-[4/3] bg-stone-200 dark:bg-stone-800 relative overflow-hidden">
           {recipe.imageUrl ? (
-            <img 
-              src={recipe.imageUrl} 
+            <img
+              src={recipe.imageUrl}
               referrerPolicy="no-referrer"
-              className="w-full h-full object-cover transition-transform group-hover:scale-105" 
-              alt={recipe.title} 
+              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              alt={recipe.title}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-stone-400 dark:text-stone-600">

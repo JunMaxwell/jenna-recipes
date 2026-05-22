@@ -1,12 +1,28 @@
-import { FC, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useForm } from 'react-hook-form';
+
+import { FC, useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { importRecipeSchema, type ImportRecipeValues } from '../schemas/recipe-schema';
+
+import { type ImportRecipeValues, importRecipeSchema } from '../schemas/recipe-schema';
 
 export interface ImportRecipeModalProps {
   isOpen: boolean;
@@ -46,15 +62,18 @@ export const ImportRecipeModal: FC<ImportRecipeModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-850 p-6 flex flex-col gap-4 rounded-3xl">
         <DialogHeader className="border-b border-stone-200 dark:border-stone-800 pb-3 pr-8">
           <DialogTitle className="text-2xl font-serif font-semibold text-stone-800 dark:text-stone-150">
             Import from Web
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            Import from Web
-          </DialogDescription>
+          <DialogDescription className="sr-only">Import from Web</DialogDescription>
         </DialogHeader>
         <div className="flex-1 text-stone-600 dark:text-stone-300">
           <Form {...form}>
@@ -98,7 +117,8 @@ export const ImportRecipeModal: FC<ImportRecipeModalProps> = ({
                 )}
               </Button>
               <p className="text-sm text-stone-400 text-center italic">
-                Gemini will intelligently gather only the essential recipe details and ingredients for you.
+                Gemini will intelligently gather only the essential recipe details and ingredients
+                for you.
               </p>
             </form>
           </Form>
