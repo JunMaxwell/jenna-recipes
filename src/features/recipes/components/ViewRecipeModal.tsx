@@ -39,7 +39,7 @@ export const ViewRecipeModal: FC<ViewRecipeModalProps> = ({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-850 p-6 flex flex-col gap-4 rounded-3xl">
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl w-full max-h-[90vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-850 p-6 md:p-8 flex flex-col gap-4 md:gap-6 rounded-3xl">
         <DialogHeader className="border-b border-stone-200 dark:border-stone-800 pb-3 pr-8">
           <DialogTitle className="text-2xl font-serif font-semibold text-stone-800 dark:text-stone-150">
             {recipe.title}

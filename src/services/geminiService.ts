@@ -125,7 +125,11 @@ export async function generateRecipe(category: string, details: string): Promise
   return JSON.parse(text) as ExtractedRecipe;
 }
 
-export async function compressImage(base64Str: string, maxWidth = 800, quality = 0.7): Promise<string> {
+export async function compressImage(
+  base64Str: string,
+  maxWidth = 800,
+  quality = 0.7,
+): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = base64Str;

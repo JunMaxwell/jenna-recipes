@@ -1,4 +1,4 @@
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Timestamp,
   addDoc,
@@ -6,12 +6,9 @@ import {
   deleteDoc,
   deleteField,
   doc,
-  getDoc,
   getDocs,
-  onSnapshot,
   query,
   serverTimestamp,
-  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -54,12 +51,16 @@ import {
   ViewRecipeModal,
 } from './features/recipes';
 import { auth, db, logOut, signIn } from './firebase';
+import { useAuthUser } from './hooks/useAuthUser';
+import { householdsQueryKey, useHouseholds } from './hooks/useHouseholds';
+import { recipesQueryKey, useRecipes } from './hooks/useRecipes';
+import { useStaleDataCleanup } from './hooks/useStaleDataCleanup';
 import {
   extractRecipeFromUrl,
   generateRecipe,
   generateRecipeImage,
 } from './services/geminiService';
-import { Category, Household, Recipe } from './types';
+import type { Category, Household, Recipe } from './types';
 
 // --- Error Handling ---
 
@@ -117,10 +118,29 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 // --- Main App Component ---
 
 export const App: FC = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [householdsLoading, setHouseholdsLoading] = useState(true);
-  const [households, setHouseholds] = useState<Household[]>([]);
+  const queryClient = useQueryClient();
+
+  // --- Data hooks (replace useEffect+fetch+setState) ---
+  const { user, isLoading: authLoading } = useAuthUser();
+  const { isDataDeleted } = useStaleDataCleanup(user);
+  const { households, isLoading: householdsLoading } = useHouseholds(user?.uid);
+  const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
+  const { recipes } = useRecipes(selectedHousehold?.id);
+
+  // Sync selectedHousehold when households data changes
+  useEffect(() => {
+    if (households.length > 0) {
+      setSelectedHousehold((prev) => {
+        if (!prev) return households[0];
+        const updated = households.find((hh) => hh.id === prev.id);
+        return updated || households[0];
+      });
+    } else {
+      setSelectedHousehold(null);
+    }
+  }, [households]);
+
+  // --- Dark mode ---
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return (
@@ -142,8 +162,7 @@ export const App: FC = () => {
     }
   }, [isDarkMode]);
 
-  const [selectedHousehold, setSelectedHousehold] = useState<Household | null>(null);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  // --- UI state ---
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
 
@@ -162,157 +181,17 @@ export const App: FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [isDemoDisabledModalOpen, setIsDemoDisabledModalOpen] = useState(false);
-  const [isDataDeletedModalOpen, setIsDataDeletedModalOpen] = useState(false);
+  const [isDataDeletedModalOpen, setIsDataDeletedModalOpen] = useState(isDataDeleted);
   const [isFirstFamilyModalOpen, setIsFirstFamilyModalOpen] = useState(false);
   const [recipeFormError, setRecipeFormError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Show data-deleted modal when stale cleanup fires
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        // Ensure user profile exists
-        const userDoc = await getDoc(doc(db, 'users', u.uid));
-        if (!userDoc.exists()) {
-          await setDoc(doc(db, 'users', u.uid), {
-            displayName: u.displayName || 'Anonymous Chef',
-            photoURL: u.photoURL || '',
-          });
-        }
-
-        // Cleanup old data (older than 24 hours)
-        try {
-          const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
-          let dataDeleted = false;
-
-          const hQuery = query(
-            collection(db, 'households'),
-            where(`members.${u.uid}`, 'in', ['admin', 'member', 'viewer']),
-          );
-          const hSnapshot = await getDocs(hQuery);
-
-          for (const hDoc of hSnapshot.docs) {
-            const hData = hDoc.data();
-            const createdAt = hData.createdAt?.toMillis?.() || 0;
-
-            if (
-              createdAt > 0 &&
-              createdAt < twentyFourHoursAgo &&
-              hData.ownerId === u.uid &&
-              !hData.isStock
-            ) {
-              try {
-                const rQuery = query(
-                  collection(db, 'recipes'),
-                  where('householdId', '==', hDoc.id),
-                );
-                const rSnapshot = await getDocs(rQuery);
-                for (const rDoc of rSnapshot.docs) {
-                  try {
-                    await deleteDoc(doc(db, 'recipes', rDoc.id));
-                  } catch (e) {
-                    console.error('Failed to delete recipe', e);
-                  }
-                }
-
-                await deleteDoc(doc(db, 'households', hDoc.id));
-                dataDeleted = true;
-              } catch (e) {
-                console.error('Failed to delete household', e);
-              }
-            } else {
-              const rQuery = query(collection(db, 'recipes'), where('householdId', '==', hDoc.id));
-              const rSnapshot = await getDocs(rQuery);
-              for (const rDoc of rSnapshot.docs) {
-                const rData = rDoc.data();
-                const rCreatedAt = rData.createdAt?.toMillis?.() || 0;
-                if (
-                  rCreatedAt > 0 &&
-                  rCreatedAt < twentyFourHoursAgo &&
-                  !rData.isStock &&
-                  (rData.authorId === u.uid || hData.ownerId === u.uid)
-                ) {
-                  try {
-                    await deleteDoc(doc(db, 'recipes', rDoc.id));
-                    dataDeleted = true;
-                  } catch (e) {
-                    console.error('Failed to delete recipe', e);
-                  }
-                }
-              }
-            }
-          }
-
-          if (dataDeleted) {
-            setIsDataDeletedModalOpen(true);
-          }
-        } catch (error) {
-          console.error('Error cleaning up old data:', error);
-        }
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Fetch Households
-  useEffect(() => {
-    if (!user) {
-      setHouseholdsLoading(false);
-      return;
+    if (isDataDeleted) {
+      setIsDataDeletedModalOpen(true);
     }
-    setHouseholdsLoading(true);
-    const q = query(
-      collection(db, 'households'),
-      where(`members.${user.uid}`, 'in', ['admin', 'member', 'viewer']),
-    );
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const h = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Household);
-        setHouseholds(h);
-        setHouseholdsLoading(false);
-        if (h.length > 0) {
-          setSelectedHousehold((prev) => {
-            if (!prev) return h[0];
-            const updated = h.find((hh) => hh.id === prev.id);
-            return updated || h[0];
-          });
-        } else {
-          setSelectedHousehold(null);
-        }
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'households');
-      },
-    );
-    return () => unsubscribe();
-  }, [user]);
-
-  // Fetch Recipes
-  useEffect(() => {
-    if (!user || !selectedHousehold) {
-      setRecipes([]);
-      return;
-    }
-    const q = query(collection(db, 'recipes'), where('householdId', '==', selectedHousehold.id));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const fetchedRecipes = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Recipe);
-        fetchedRecipes.sort((a, b) => {
-          const timeA = a.createdAt?.toMillis?.() || Date.now();
-          const timeB = b.createdAt?.toMillis?.() || Date.now();
-          return timeB - timeA;
-        });
-        setRecipes(fetchedRecipes);
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'recipes');
-      },
-    );
-    return () => unsubscribe();
-  }, [user, selectedHousehold]);
+  }, [isDataDeleted]);
 
   const handleCreateHousehold = async (name: string) => {
     if (!user) return;
@@ -321,7 +200,7 @@ export const App: FC = () => {
       const newH = {
         name,
         ownerId: user.uid,
-        members: { [user.uid]: 'admin' },
+        members: { [user.uid]: 'admin' as const },
         createdAt: serverTimestamp(),
       };
       const docRef = await addDoc(collection(db, 'households'), newH);
@@ -339,6 +218,7 @@ export const App: FC = () => {
       setSelectedHousehold({ id: docRef.id, ...newH } as Household);
       setIsHouseholdModalOpen(false);
       setIsFirstFamilyModalOpen(true);
+      await queryClient.invalidateQueries({ queryKey: householdsQueryKey(user.uid) });
     } catch (error) {
       console.error('Error creating household:', error);
       alert('Failed to create household.');
@@ -361,6 +241,8 @@ export const App: FC = () => {
 
       setIsDeleteHouseholdConfirmOpen(false);
       setIsHouseholdModalOpen(false);
+      await queryClient.invalidateQueries({ queryKey: householdsQueryKey(user.uid) });
+      await queryClient.invalidateQueries({ queryKey: recipesQueryKey(householdId) });
     } catch (error) {
       console.error('Failed to delete household:', error);
       alert('Failed to delete household. Please try again.');
@@ -408,6 +290,7 @@ export const App: FC = () => {
       }
       setIsAddModalOpen(false);
       setEditingRecipe(null);
+      await queryClient.invalidateQueries({ queryKey: recipesQueryKey(selectedHousehold.id) });
     } catch (error) {
       console.error('Error saving recipe:', error);
     }
@@ -418,6 +301,9 @@ export const App: FC = () => {
       await deleteDoc(doc(db, 'recipes', id));
       setViewingRecipe(null);
       setIsDeleteConfirmOpen(false);
+      if (selectedHousehold) {
+        await queryClient.invalidateQueries({ queryKey: recipesQueryKey(selectedHousehold.id) });
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `recipes/${id}`);
     }
@@ -503,6 +389,7 @@ export const App: FC = () => {
       await updateDoc(hRef, {
         [`members.${userId}`]: 'member',
       });
+      await queryClient.invalidateQueries({ queryKey: householdsQueryKey(user.uid) });
     } catch (error) {
       console.error('Failed to add member:', error);
       alert('Failed to add member. Please check the User ID and try again.');
@@ -520,6 +407,7 @@ export const App: FC = () => {
       await updateDoc(hRef, {
         [`members.${userId}`]: deleteField(),
       });
+      await queryClient.invalidateQueries({ queryKey: householdsQueryKey(user.uid) });
     } catch (error) {
       console.error('Failed to remove member:', error);
       alert('Failed to remove member. Please try again.');
@@ -542,7 +430,7 @@ export const App: FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  if (loading || (user && householdsLoading)) {
+  if (authLoading || (user && householdsLoading)) {
     return (
       <div className="h-screen flex items-center justify-center bg-stone-50">
         <Loader2 className="w-8 h-8 animate-spin text-stone-400" />

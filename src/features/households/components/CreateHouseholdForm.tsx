@@ -85,12 +85,12 @@ export const CreateHouseholdForm: FC<CreateHouseholdFormProps> = ({
           </form>
         </Form>
 
-        <button
+        <Button
           onClick={onSignOut}
           className="text-stone-400 hover:text-stone-600 text-sm font-medium transition-colors"
         >
           Sign out
-        </button>
+        </Button>
       </motion.div>
     </div>
   );
