@@ -155,12 +155,8 @@ export const App: FC = () => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeleteHouseholdConfirmOpen, setIsDeleteHouseholdConfirmOpen] = useState(false);
 
-  const [importUrl, setImportUrl] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const [aiCategory, setAiCategory] = useState<Category>('Dinner');
-  const [aiDetails, setAiDetails] = useState('');
 
   const [isDemoDisabledModalOpen, setIsDemoDisabledModalOpen] = useState(false);
   const [isDataDeletedModalOpen, setIsDataDeletedModalOpen] = useState(false);
@@ -397,7 +393,7 @@ export const App: FC = () => {
     }
   };
 
-  const handleImport = async () => {
+  const handleImport = async (importUrl: string) => {
     if (!importUrl) return;
     setIsProcessing(true);
     setImportError(null);
@@ -405,12 +401,12 @@ export const App: FC = () => {
     try {
       const extracted = await extractRecipeFromUrl(importUrl);
       console.log("Extracted recipe:", extracted);
-      
+
       const imageUrl = await generateRecipeImage(extracted.title, extracted.category);
-      
+
       // Close import modal first
       setIsImportModalOpen(false);
-      
+
       // Set the editing recipe with temporary fields to satisfy the type
       setEditingRecipe({
         ...extracted,
@@ -422,10 +418,9 @@ export const App: FC = () => {
         householdId: selectedHousehold?.id || '',
         createdAt: Timestamp.now()
       } as Recipe);
-      
+
       // Open the add modal
       setIsAddModalOpen(true);
-      setImportUrl(''); // Clear the URL
     } catch (error) {
       console.error("Import failed:", error);
       setImportError(error instanceof Error ? error.message : "Failed to import recipe. Please check the URL and try again.");
@@ -434,26 +429,25 @@ export const App: FC = () => {
     }
   };
 
-  const handleGenerateRecipe = async () => {
+  const handleGenerateRecipe = async ({ category, details }: { category: Category; details: string }) => {
     setIsProcessing(true);
     try {
-      const recipe = await generateRecipe(aiCategory, aiDetails);
-      const imageUrl = await generateRecipeImage(recipe.title, aiCategory);
-      
+      const recipe = await generateRecipe(category, details);
+      const imageUrl = await generateRecipeImage(recipe.title, category);
+
       setIsGenerateModalOpen(false);
-      
+
       setEditingRecipe({
         ...recipe,
-        category: aiCategory,
+        category,
         imageUrl: imageUrl || '',
         id: '',
         authorId: user?.uid || '',
         householdId: selectedHousehold?.id || '',
         createdAt: Timestamp.now()
       } as Recipe);
-      
+
       setIsAddModalOpen(true);
-      setAiDetails('');
     } catch (error) {
       console.error("Generate failed:", error);
       alert("Failed to generate recipe. Please try again.");
@@ -717,24 +711,18 @@ export const App: FC = () => {
           onSaveRecipe={handleSaveRecipe}
         />
 
-        <ImportRecipeModal 
+        <ImportRecipeModal
           isOpen={isImportModalOpen}
           onClose={() => { setIsImportModalOpen(false); setImportError(null); }}
-          importUrl={importUrl}
-          setImportUrl={setImportUrl}
           importError={importError}
           setImportError={setImportError}
           isProcessing={isProcessing}
           onImport={handleImport}
         />
 
-        <GenerateRecipeModal 
+        <GenerateRecipeModal
           isOpen={isGenerateModalOpen}
           onClose={() => setIsGenerateModalOpen(false)}
-          aiCategory={aiCategory}
-          setAiCategory={setAiCategory}
-          aiDetails={aiDetails}
-          setAiDetails={setAiDetails}
           isProcessing={isProcessing}
           onGenerateRecipe={handleGenerateRecipe}
         />

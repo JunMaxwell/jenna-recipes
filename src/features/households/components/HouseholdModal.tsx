@@ -1,10 +1,19 @@
-import { FC, FormEvent } from 'react';
+import { FC } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { ChevronRight, X, Loader2, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Household } from '../../../types';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import {
+  createHouseholdSchema,
+  inviteMemberSchema,
+  type CreateHouseholdValues,
+  type InviteMemberValues,
+} from '../schemas/household-schema';
 
 export interface HouseholdModalProps {
   isOpen: boolean;
@@ -41,24 +50,24 @@ export const HouseholdModal: FC<HouseholdModalProps> = ({
   isDeleteHouseholdConfirmOpen,
   setIsDeleteHouseholdConfirmOpen,
 }) => {
-  const handleInviteSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const uid = formData.get('uid') as string;
-    if (uid?.trim()) {
-      onAddMember(uid.trim());
-      e.currentTarget.reset();
-    }
+  const inviteForm = useForm<InviteMemberValues>({
+    resolver: zodResolver(inviteMemberSchema),
+    defaultValues: { uid: '' },
+  });
+
+  const createForm = useForm<CreateHouseholdValues>({
+    resolver: zodResolver(createHouseholdSchema),
+    defaultValues: { name: '' },
+  });
+
+  const onInviteSubmit = ({ uid }: InviteMemberValues) => {
+    onAddMember(uid);
+    inviteForm.reset();
   };
 
-  const handleCreateSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    if (name?.trim()) {
-      onCreateHousehold(name.trim());
-      e.currentTarget.reset();
-    }
+  const onCreateSubmit = ({ name }: CreateHouseholdValues) => {
+    onCreateHousehold(name);
+    createForm.reset();
   };
 
   const isOwner = selectedHousehold && selectedHousehold.ownerId === userUid;
@@ -105,15 +114,29 @@ export const HouseholdModal: FC<HouseholdModalProps> = ({
             <div className="space-y-4 pt-8 border-t border-stone-200 dark:border-stone-800">
               <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest">Invite Member</h3>
               <p className="text-xs text-stone-400 italic">Enter the User ID of the person you want to invite.</p>
-              <form onSubmit={handleInviteSubmit} className="flex gap-2">
-                <Input 
-                  name="uid" 
-                  required 
-                  placeholder="User UID" 
-                  className="flex-1 h-10 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100" 
-                />
-                <Button type="submit" className="h-10">Invite</Button>
-              </form>
+              <Form {...inviteForm}>
+                <form onSubmit={inviteForm.handleSubmit(onInviteSubmit)} className="space-y-2">
+                  <div className="flex gap-2">
+                    <FormField
+                      control={inviteForm.control}
+                      name="uid"
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <Input
+                              placeholder="User UID"
+                              className="w-full h-10 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="h-10">Invite</Button>
+                  </div>
+                </form>
+              </Form>
               <div className="space-y-2">
                 {Object.entries(selectedHousehold.members).map(([uid, role]) => (
                   <div key={uid} className="flex justify-between items-center text-sm p-2 bg-white dark:bg-stone-900 rounded-lg border border-stone-100 dark:border-stone-800">
@@ -121,7 +144,7 @@ export const HouseholdModal: FC<HouseholdModalProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="capitalize px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 text-[10px] font-bold">{role}</span>
                       {uid !== userUid && (
-                        <button 
+                        <button
                           onClick={() => onRemoveMember(uid)}
                           className="text-stone-400 hover:text-red-500 transition-colors"
                           title="Remove member"
@@ -141,7 +164,7 @@ export const HouseholdModal: FC<HouseholdModalProps> = ({
             <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest">My User ID</h3>
             <div className="flex items-center justify-between p-3 bg-stone-100 dark:bg-stone-850 rounded-xl">
               <code className="text-xs font-mono text-stone-600 dark:text-stone-300">{userUid}</code>
-              <button 
+              <button
                 onClick={onCopyId}
                 className="text-[10px] font-bold uppercase text-stone-400 hover:text-stone-800 dark:hover:text-stone-100 transition-colors"
               >
@@ -153,18 +176,32 @@ export const HouseholdModal: FC<HouseholdModalProps> = ({
           {/* Create New Household */}
           <div className="space-y-4 pt-8 border-t border-stone-200 dark:border-stone-800">
             <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest">Create New Household</h3>
-            <form onSubmit={handleCreateSubmit} className="flex gap-2">
-              <Input 
-                name="name" 
-                required 
-                placeholder="e.g. The Smith Family" 
-                className="flex-1 h-10 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100" 
-                disabled={isProcessing} 
-              />
-              <Button type="submit" className="h-10" disabled={isProcessing}>
-                {isProcessing ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : "Create"}
-              </Button>
-            </form>
+            <Form {...createForm}>
+              <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-2">
+                <div className="flex gap-2">
+                  <FormField
+                    control={createForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          <Input
+                            placeholder="e.g. The Smith Family"
+                            className="w-full h-10 px-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100"
+                            disabled={isProcessing}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="h-10" disabled={isProcessing}>
+                    {isProcessing ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : 'Create'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </div>
 
           {/* Delete Household */}

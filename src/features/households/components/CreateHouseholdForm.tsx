@@ -1,7 +1,12 @@
-import { FC, FormEvent } from 'react';
+import { FC } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'motion/react';
 import { Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { createHouseholdSchema, type CreateHouseholdValues } from '../schemas/household-schema';
 
 export interface CreateHouseholdFormProps {
   isProcessing: boolean;
@@ -12,20 +17,20 @@ export interface CreateHouseholdFormProps {
 export const CreateHouseholdForm: FC<CreateHouseholdFormProps> = ({
   isProcessing,
   onCreateHousehold,
-  onSignOut
+  onSignOut,
 }) => {
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    if (name?.trim()) {
-      onCreateHousehold(name.trim());
-    }
+  const form = useForm<CreateHouseholdValues>({
+    resolver: zodResolver(createHouseholdSchema),
+    defaultValues: { name: '' },
+  });
+
+  const onSubmit = ({ name }: CreateHouseholdValues) => {
+    onCreateHousehold(name);
   };
 
   return (
     <div className="min-h-screen bg-[#f5f5f0] flex flex-col items-center justify-center p-6 font-serif">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full text-center space-y-8"
@@ -37,28 +42,40 @@ export const CreateHouseholdForm: FC<CreateHouseholdFormProps> = ({
           <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Create a Household</h1>
           <p className="text-stone-500 text-lg">You need a household to start saving recipes. A household is where you and your family share traditions.</p>
         </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input 
-            name="name" 
-            required 
-            placeholder="e.g. The Smith Family" 
-            className="w-full px-6 py-4 rounded-2xl border border-stone-200 focus:ring-2 focus:ring-stone-800/10 outline-none bg-white shadow-sm" 
-            disabled={isProcessing} 
-          />
-          <Button type="submit" size="lg" className="w-full h-auto py-4 text-lg shadow-lg" disabled={isProcessing}>
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Creating...
-              </>
-            ) : (
-              "Create Household"
-            )}
-          </Button>
-        </form>
 
-        <button 
-          onClick={onSignOut} 
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. The Smith Family"
+                      className="w-full px-6 py-4 rounded-2xl border border-stone-200 focus:ring-2 focus:ring-stone-800/10 outline-none bg-white shadow-sm"
+                      disabled={isProcessing}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-left" />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" size="lg" className="w-full h-auto py-4 text-lg shadow-lg" disabled={isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Creating...
+                </>
+              ) : (
+                'Create Household'
+              )}
+            </Button>
+          </form>
+        </Form>
+
+        <button
+          onClick={onSignOut}
           className="text-stone-400 hover:text-stone-600 text-sm font-medium transition-colors"
         >
           Sign out
