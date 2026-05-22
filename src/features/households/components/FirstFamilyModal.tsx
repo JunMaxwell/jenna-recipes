@@ -36,7 +36,7 @@ export const FirstFamilyModal: FC<FirstFamilyModalProps> = ({ isOpen, onClose })
               If you want to create your own permanent version and keep your family recipes forever, click the <strong>Remix</strong> button in the top right of AI Studio!
             </p>
           </div>
-          <Button className="w-full py-4 mt-4" onClick={onClose}>
+          <Button className="w-full mt-4" onClick={onClose}>
             Start Cooking
           </Button>
         </div>

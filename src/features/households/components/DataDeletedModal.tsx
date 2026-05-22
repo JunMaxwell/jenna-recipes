@@ -30,7 +30,7 @@ export const DataDeletedModal: FC<DataDeletedModalProps> = ({ isOpen, onClose })
           <p className="text-stone-600 dark:text-stone-300 leading-relaxed">
             If you want your recipes to persist forever, click the <strong>Remix</strong> button in AI Studio to create your own private version of this app!
           </p>
-          <Button className="w-full py-4 mt-4" onClick={onClose}>
+          <Button className="w-full mt-4" onClick={onClose}>
             I understand
           </Button>
         </div>

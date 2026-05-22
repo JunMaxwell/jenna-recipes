@@ -159,7 +159,7 @@ export const RecipeFormModal: FC<RecipeFormModalProps> = ({
               </div>
             </div>
 
-            <Button type="submit" className="w-full py-4 text-lg">Save Recipe</Button>
+            <Button type="submit" size="lg" className="w-full h-auto py-4 text-lg">Save Recipe</Button>
           </form>
         </div>
       </DialogContent>

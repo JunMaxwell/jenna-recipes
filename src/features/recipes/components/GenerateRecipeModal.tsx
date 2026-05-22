@@ -72,7 +72,7 @@ export const GenerateRecipeModal: FC<GenerateRecipeModalProps> = ({
             />
           </div>
           <Button 
-            className="w-full py-4" 
+            className="w-full" 
             onClick={onGenerateRecipe} 
             disabled={isProcessing}
           >

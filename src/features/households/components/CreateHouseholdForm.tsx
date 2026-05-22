@@ -46,7 +46,7 @@ export const CreateHouseholdForm: FC<CreateHouseholdFormProps> = ({
             className="w-full px-6 py-4 rounded-2xl border border-stone-200 focus:ring-2 focus:ring-stone-800/10 outline-none bg-white shadow-sm" 
             disabled={isProcessing} 
           />
-          <Button type="submit" className="w-full py-4 text-lg shadow-lg" disabled={isProcessing}>
+          <Button type="submit" size="lg" className="w-full h-auto py-4 text-lg shadow-lg" disabled={isProcessing}>
             {isProcessing ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" /> Creating...

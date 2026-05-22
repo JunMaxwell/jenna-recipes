@@ -60,6 +60,7 @@ import {
   ImportRecipeModal, 
   GenerateRecipeModal 
 } from './features/recipes';
+import { Input } from '@/components/ui/input';
 
 // --- Error Handling ---
 
@@ -529,7 +530,7 @@ export const App: FC = () => {
             <h1 className="text-5xl font-bold text-stone-900 tracking-tight">Heirloom</h1>
             <p className="text-stone-500 text-lg">Your digital kitchen for family traditions.</p>
           </div>
-          <Button onClick={signIn} className="w-full py-4 text-lg shadow-lg">
+          <Button variant="default" className="w-full h-auto py-4 text-lg">
             Sign in with Google
           </Button>
         </motion.div>
@@ -609,20 +610,20 @@ export const App: FC = () => {
                 <Button 
                   variant="secondary" 
                   onClick={() => setIsGenerateModalOpen(true)} 
-                  className="dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+                  className="shadow-sm"
                 >
                   <Sparkles className="w-4 h-4" /> AI Recipe
                 </Button>
                 <Button 
                   variant="secondary" 
                   onClick={() => setIsImportModalOpen(true)} 
-                  className="dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+                  className="shadow-sm"
                 >
                   <LinkIcon className="w-4 h-4" /> Import URL
                 </Button>
                 <Button 
                   onClick={() => { setEditingRecipe(null); setIsAddModalOpen(true); }} 
-                  className="dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                  className="shadow-sm"
                 >
                   <Plus className="w-4 h-4" /> Add Recipe
                 </Button>
@@ -633,28 +634,25 @@ export const App: FC = () => {
             <section className="flex flex-col lg:flex-row gap-4">
               <div className="relative flex-1 lg:min-w-[400px]">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                <input 
+                <Input 
                   type="text" 
                   placeholder="Search recipes or ingredients..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-800/10 dark:focus:ring-stone-100/10 transition-all text-lg"
+                  className="w-full pl-12 pr-4 h-12 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-800/10 dark:focus:ring-stone-100/10 transition-all text-base"
                 />
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+              <div className="flex gap-2 overflow-x-auto py-5 -my-5 px-4 -mx-4 scrollbar-hide">
                 {['All', 'Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Drink'].map((cat) => (
-                  <button
+                  <Button
                     key={cat}
+                    variant={selectedCategory === cat ? "default" : "outline"}
                     onClick={() => setSelectedCategory(cat as Category | 'All')}
-                    className={cn(
-                      "px-6 py-4 rounded-2xl whitespace-nowrap font-medium transition-all border",
-                      selectedCategory === cat 
-                        ? "bg-stone-800 dark:bg-stone-100 text-stone-50 dark:text-stone-900 border-stone-800 dark:border-stone-100 shadow-md" 
-                        : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-800 hover:border-stone-400 dark:hover:border-stone-600"
-                    )}
+                    className="whitespace-nowrap shadow-sm"
+                    size="lg"
                   >
                     {cat}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>

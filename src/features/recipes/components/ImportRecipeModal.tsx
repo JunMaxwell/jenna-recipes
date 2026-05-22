@@ -60,7 +60,7 @@ export const ImportRecipeModal: FC<ImportRecipeModalProps> = ({
             </div>
           )}
           <Button 
-            className="w-full py-4" 
+            className="w-full" 
             onClick={onImport} 
             disabled={isProcessing || !importUrl}
           >
